@@ -69,8 +69,9 @@ class IOBotZulip(object):
     def help(self, shlexed_string):
         help_content = '''
         help:
-            available help options: {bot_actions}
-        '''.format(bot_actions=self.bot_actions)
+            available bot actions:
+                {bot_actions}
+        '''.format(bot_actions="\n                ".join(self.bot_actions))
 
         return help_content
 
@@ -92,7 +93,7 @@ class IOBotZulip(object):
             #Leaving the method with dealing with whether or not it wants to shlex the first char.
             _func = most_significant_string
             try:  # we shouldn't get here, but don't crash
-                getattr(self, _func)(shlexed_string=shlexed_string[1:])
+                return getattr(self, _func)(shlexed_string=shlexed_string[1:])
             except AttributeError:
                 return "Command unknown.  Available actions: %s" % (", ".join(self.bot_actions))
         else:
@@ -103,8 +104,9 @@ class IOBotZulip(object):
     # Response mechanisms
     #
 
-    def respond_private(self, message, _sender):
+    def respond_private(self, message, _sender, response):
         # Keep from responding to ourselves
+
         if (_sender != self.bot_email) and (_sender is not None):
             if self.debug:
                 IOBotZulip.debug_msg('Sending a private message...')
@@ -112,17 +114,17 @@ class IOBotZulip(object):
                 "type": "private",
                 "subject": message['subject'],
                 "to": _sender,
-                "content": message['iobot_response']
+                "content": response
             })
 
-    def respond_stream(self, message):
+    def respond_stream(self, message, response):
         if self.debug:
             IOBotZulip.debug_msg("Sending message to a stream...")
         self._client.send_message({
             "type": "steam",
             "to": message.get('to', 'iobot'),
             "subject": self.set_return_key(obj=message, key='subject'),
-            "content": message['iobot_response']
+            "content": response
         })
 
     def respond(self, message=None, channel=None, content=None):
@@ -135,7 +137,9 @@ class IOBotZulip(object):
             }
             IOBotZulip.debug_msg('send_message() debug: ', debug_output)
 
-        message['iobot_response'] = self.parse_handler(message.get('content', ''))
+        response = self.parse_handler(message.get('content', ''))
+        print("*"*40)
+        print(response)
 
         #suuuuper cheap version of types.NoneType
         if id(message) is not id(None):
@@ -148,9 +152,9 @@ class IOBotZulip(object):
                 m_type = message.get('type', None)
 
                 if m_type == 'stream' or m_type == 'channel':
-                    self.respond_stream(message)
+                    self.respond_stream(message, response)
                 elif m_type == 'private':
-                    self.respond_private(message, _sender)
+                    self.respond_private(message, _sender, response)
                 else:
                     pass
                 return
