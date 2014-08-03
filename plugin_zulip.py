@@ -18,14 +18,14 @@ class IOBotZulip(object):
                 self.bot_email = os.environ['ZULIP_BOT_EMAIL']
             except:
                 raise Exception("Zulip bot email address was not provided and could "
-                                "not be populated via the environmental variable: \n ZULIP_BOT_EMAIL")
+                                "not be populated via the environmental variable: \nZULIP_BOT_EMAIL")
 
         if self.bot_api_key is None:
             try:
                 self.bot_api_key = os.environ['ZULIP_API_KEY']
             except:
                 raise Exception("Zulip bot api key address was not provided and could "
-                                "not be populated via the environmental variable: \n ZULIP_API_KEY")
+                                "not be populated via the environmental variable: \nZULIP_API_KEY")
 
         self._client = zulip.Client(email=self.bot_email, api_key=self.bot_api_key)
 
