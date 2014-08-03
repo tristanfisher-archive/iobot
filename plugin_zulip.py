@@ -2,7 +2,9 @@ from __future__ import print_function
 
 import zulip
 import os
+import shlex
 import sys
+
 
 class IOBotZulip(object):
 
@@ -28,9 +30,22 @@ class IOBotZulip(object):
                                 "not be populated via the environmental variable: \nZULIP_API_KEY")
 
         self._client = zulip.Client(email=self.bot_email, api_key=self.bot_api_key)
+        self.bot_actions = ['help']
+
+
+    def user_facing(self, func):
+        def register():
+            if func not in self.bot_actions:
+                self.bot_actions.append(func)
+        register()
+
+        return func
 
     # -- END OF INIT --
 
+    #
+    # Helper methods
+    #
     #shim for more sophisticated logging later.
     @staticmethod
     def debug_msg(prefix='[DEBUG]>>> ', *args, **kwargs):
@@ -47,17 +62,57 @@ class IOBotZulip(object):
 
         return obj.get(key)
 
+    #
+    # User-facing bot actions
+    #
+
+    def help(self, shlexed_string):
+        help_content = '''
+        help:
+            available help options: {bot_actions}
+        '''.format(bot_actions=self.bot_actions)
+
+        return help_content
+
+    #
+    # Bot action router:
+    #
+    def parse_handler(self, string):
+        """
+        this handler does a list lookup by grabbing the first non-whitespace string that is passed to it.
+
+        this function is a great candidate for abstracting into a separate module.
+        """
+        #lex and lowercase first string
+        shlexed_string = shlex.split(string)
+        most_significant_string = str(shlexed_string[:1][0]).lower()
+
+        if most_significant_string in self.bot_actions:
+            #If first string is in bot actions, call the method and pass it the rest of the string.
+            #Leaving the method with dealing with whether or not it wants to shlex the first char.
+            _func = most_significant_string
+            try:  # we shouldn't get here, but don't crash
+                getattr(self, _func)(shlexed_string=shlexed_string[1:])
+            except AttributeError:
+                return "Command unknown.  Available actions: %s" % (", ".join(self.bot_actions))
+        else:
+            #if we don't have a matching bot action, return a list of actions
+            return "Command unknown.  Available actions: %s" % (", ".join(self.bot_actions))
+
+    #
+    # Response mechanisms
+    #
+
     def respond_private(self, message, _sender):
         # Keep from responding to ourselves
         if (_sender != self.bot_email) and (_sender is not None):
-            print(">>>>>>>>>>>>>%s" % _sender)
             if self.debug:
                 IOBotZulip.debug_msg('Sending a private message...')
             self._client.send_message({
                 "type": "private",
                 "subject": message['subject'],
                 "to": _sender,
-                "content": message['content']
+                "content": message['iobot_response']
             })
 
     def respond_stream(self, message):
@@ -67,7 +122,7 @@ class IOBotZulip(object):
             "type": "steam",
             "to": message.get('to', 'iobot'),
             "subject": self.set_return_key(obj=message, key='subject'),
-            "content": message['content']
+            "content": message['iobot_response']
         })
 
     def respond(self, message=None, channel=None, content=None):
@@ -80,6 +135,8 @@ class IOBotZulip(object):
             }
             IOBotZulip.debug_msg('send_message() debug: ', debug_output)
 
+        message['iobot_response'] = self.parse_handler(message.get('content', ''))
+
         #suuuuper cheap version of types.NoneType
         if id(message) is not id(None):
 
@@ -87,8 +144,6 @@ class IOBotZulip(object):
 
             #self.bot_email is a str, cast unicode str(_sender) and check that _sender isn't None.
             if (str(_sender) != self.bot_email) and (_sender is not None):
-
-                # recursion is happening here
 
                 m_type = message.get('type', None)
 
@@ -115,5 +170,3 @@ class IOBotZulip(object):
             self._client.call_on_each_message(lambda msg: action(msg))
 
     bind = callback
-
-
