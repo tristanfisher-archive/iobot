@@ -38,7 +38,7 @@ class IOBotZulip(IOBot):
 
         # See if the action exists in the subclass before going to parent scope.
         self.bot_actions = ['help']
-        self.greetings = ['hi', 'hello', 'yo', 'sup', 'greetings', 'omg hi']  # 'omg hi' is a miss on shlex
+        self.greetings = ['hi', 'hey', 'hello', 'yo', 'sup', 'greetings', 'omg hi']  # 'omg hi' is a miss on shlex
 
     def user_facing(self, func):
         def register():
