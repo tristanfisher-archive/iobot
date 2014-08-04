@@ -82,22 +82,44 @@ class IOBotZulip(IOBot):
 
         return help_content
 
+    def say_hi(self):
+        return "%s %s" % (choice(self.greetings), ':)')
+
     #
     # Bot action router:
     #
-    def parse_handler(self, string):
+    def parse_handler(self, string, prefix_trigger=False):
         """
         this handler does a list lookup by grabbing the first non-whitespace string that is passed to it.
 
         this function is a great candidate for abstracting into a separate module.
+
+        prefix_trigger : only parse the content when the incoming content begins with the given string.
+                        this is useful for listening in a channel -- don't respond to every 'hi'
         """
         #lex and lowercase first string
         shlexed_string = shlex.split(string)
         most_significant_string = str(shlexed_string[:1][0]).lower()
 
-        if (str(shlexed_string[0]).lower() in self.greetings) and (len(shlexed_string) > 1):
-            if str(shlexed_string[1]).lower() == self.bot_name: #someone is saying hi to us!
-                return "%s %s" % (choice(self.greetings), ':)')
+        if prefix_trigger:  # is it me you're looking for?
+            if most_significant_string == prefix_trigger:
+                shlexed_string.pop(0)
+            else:
+                return None  # If we expect to get called and we don't, do nothing.
+
+        try:
+            if (str(shlexed_string[0]).lower() in self.greetings) and (len(shlexed_string) > 0):
+                if prefix_trigger:  # iobot was popped off shlex (e.g. '->iobot<- hi')
+                    return self.say_hi()
+                if len(shlexed_string) > 1:  # hi with more text. #todo: remove?
+                    if str(shlexed_string[1]).lower() == self.bot_name:  # someone is saying hi to us by name!
+                        return self.say_hi()
+                else:
+                    return self.say_hi()
+        except IndexError, e:
+            sys.stderr.write('IndexError!' + str(e))
+            pass  # user string was one string
+
 
         if most_significant_string in self.bot_actions:
             #If first string is in bot actions, call the method and pass it the rest of the string.
@@ -148,8 +170,6 @@ class IOBotZulip(IOBot):
             }
             IOBotZulip.debug_msg('send_message() debug: ', debug_output)
 
-        response = self.parse_handler(message.get('content', ''))
-
         #suuuuper cheap version of types.NoneType
         if id(message) is not id(None):
 
@@ -163,9 +183,13 @@ class IOBotZulip(IOBot):
                 if self.debug: IOBotZulip.debug_msg('Sending response to: %s' % _sender)
 
                 if m_type == 'stream' or m_type == 'channel':
-                    self.respond_stream(message, response)
+                    response = self.parse_handler(message.get('content', ''), prefix_trigger=self.bot_name)
+                    if response:
+                        self.respond_stream(message, response)
                 elif m_type == 'private':
-                    self.respond_private(message, _sender, response)
+                    response = self.parse_handler(message.get('content', ''), prefix_trigger=False)
+                    if response:
+                        self.respond_private(message, _sender, response)
                 else:
                     pass
                 return
