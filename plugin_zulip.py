@@ -1,15 +1,20 @@
 from __future__ import print_function
+from iobot import IOBot
 
 import zulip
 import os
 import shlex
 import sys
+from random import choice
 
+class IOBotZulip(IOBot):
 
-class IOBotZulip(object):
+    def __init__(self, bot_name='iobot', bot_email=None, bot_api_key=None, debug=False):
 
-    def __init__(self, bot_email=None, bot_api_key=None, debug=True):
+        super(IOBotZulip, self).__init__(name='IOBot')
+
         self.debug = debug
+        self.bot_name = bot_name
         self.bot_email = str(bot_email)
         self.bot_api_key = bot_api_key
 
@@ -30,8 +35,10 @@ class IOBotZulip(object):
                                 "not be populated via the environmental variable: \nZULIP_API_KEY")
 
         self._client = zulip.Client(email=self.bot_email, api_key=self.bot_api_key)
-        self.bot_actions = ['help']
 
+        # See if the action exists in the subclass before going to parent scope.
+        self.bot_actions = ['help']
+        self.greetings = ['hi', 'hello', 'yo', 'sup', 'greetings', 'omg hi']  # 'omg hi' is a miss on shlex
 
     def user_facing(self, func):
         def register():
@@ -69,7 +76,7 @@ class IOBotZulip(object):
     def help(self, shlexed_string):
         help_content = '''
         help:
-            available bot actions:
+            available zulip actions:
                 {bot_actions}
         '''.format(bot_actions="\n                ".join(self.bot_actions))
 
@@ -87,6 +94,10 @@ class IOBotZulip(object):
         #lex and lowercase first string
         shlexed_string = shlex.split(string)
         most_significant_string = str(shlexed_string[:1][0]).lower()
+
+        if (str(shlexed_string[0]).lower() in self.greetings) and (len(shlexed_string) > 1):
+            if str(shlexed_string[1]).lower() == self.bot_name: #someone is saying hi to us!
+                return "%s %s" % (choice(self.greetings), ':)')
 
         if most_significant_string in self.bot_actions:
             #If first string is in bot actions, call the method and pass it the rest of the string.
@@ -138,8 +149,6 @@ class IOBotZulip(object):
             IOBotZulip.debug_msg('send_message() debug: ', debug_output)
 
         response = self.parse_handler(message.get('content', ''))
-        print("*"*40)
-        print(response)
 
         #suuuuper cheap version of types.NoneType
         if id(message) is not id(None):
@@ -150,6 +159,8 @@ class IOBotZulip(object):
             if (str(_sender) != self.bot_email) and (_sender is not None):
 
                 m_type = message.get('type', None)
+
+                if self.debug: IOBotZulip.debug_msg('Sending response to: %s' % _sender)
 
                 if m_type == 'stream' or m_type == 'channel':
                     self.respond_stream(message, response)
