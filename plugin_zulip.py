@@ -152,13 +152,15 @@ class IOBotZulip(IOBot):
 
     def respond_stream(self, message, response):
         if self.debug:
-            IOBotZulip.debug_msg("Sending message to a stream...")
+            IOBotZulip.debug_msg("Sending message to stream: %s , subject: %s.." %
+                                 (message.get('display_recipient', 'iobot'), self.set_return_key(obj=message, key='subject')))
         self._client.send_message({
-            "type": "steam",
-            "to": message.get('to', 'iobot'),
+            "type": "stream",
+            "to": message.get('display_recipient', 'iobot'),
             "subject": self.set_return_key(obj=message, key='subject'),
             "content": response
         })
+
 
     def respond(self, message=None, channel=None, content=None):
 
@@ -199,6 +201,9 @@ class IOBotZulip(IOBot):
                     IOBotZulip.debug_msg("send_message()-> Sender email was >> %s <<.  Refusing to go into a recursive loop." % _sender)
 
     def callback(self, callback_type='message'):
+        """
+        Handling the **blocking** call
+        """
 
         action = self.respond
 
