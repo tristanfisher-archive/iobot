@@ -85,6 +85,10 @@ class IOBotZulip(IOBot):
     def say_hi(self):
         return "%s %s" % (choice(self.greetings), ':)')
 
+    def parameterized_response(self, msg=''):
+        return "%s" % msg
+
+
     #
     # Bot action router:
     #
@@ -98,7 +102,13 @@ class IOBotZulip(IOBot):
                         this is useful for listening in a channel -- don't respond to every 'hi'
         """
         #lex and lowercase first string
-        shlexed_string = shlex.split(string)
+        try:
+            shlexed_string = shlex.split(string)
+        except ValueError, e: #>iobot '< will crash this
+            sys.stderr.write(str(e))
+            return self.parameterized_response(";__; that input made me feel crash-ey.")
+
+
         most_significant_string = str(shlexed_string[:1][0]).lower()
 
         if prefix_trigger:  # is it me you're looking for?
