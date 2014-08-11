@@ -104,8 +104,10 @@ class IOBotZulip(object):
         try:
             shlexed_string = shlex.split(string)
         except ValueError, e: #>iobot '< will crash this
-            sys.stderr.write(str(e))
-            return self.parameterized_response(";__; that input made me feel crash-ey.")
+            sys.stderr.write(str(e) + "\n")
+            return None
+            #To return complaints:
+            #return self.parameterized_response(";__; that input made me feel crash-ey.")
 
 
         most_significant_string = str(shlexed_string[:1][0]).lower()
@@ -191,15 +193,17 @@ class IOBotZulip(object):
 
                 m_type = message.get('type', None)
 
-                if self.debug: IOBotZulip.debug_msg('Sending response to: %s' % _sender)
+
 
                 if m_type == 'stream' or m_type == 'channel':
                     response = self.parse_handler(message.get('content', ''), prefix_trigger=self.bot_name)
                     if response:
+                        if self.debug: IOBotZulip.debug_msg('Sending stream response to: %s' % _sender)
                         self.respond_stream(message, response)
                 elif m_type == 'private':
                     response = self.parse_handler(message.get('content', ''), prefix_trigger=False)
                     if response:
+                        if self.debug: IOBotZulip.debug_msg('Sending private response to: %s' % _sender)
                         self.respond_private(message, _sender, response)
                 else:
                     pass
