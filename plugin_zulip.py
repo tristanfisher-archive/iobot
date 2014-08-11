@@ -109,12 +109,15 @@ class IOBotZulip(object):
             #To return complaints:
             #return self.parameterized_response(";__; that input made me feel crash-ey.")
 
-
         most_significant_string = str(shlexed_string[:1][0]).lower()
 
         if prefix_trigger:  # is it me you're looking for?
             if most_significant_string == prefix_trigger:
-                shlexed_string.pop(0)
+                #TODO!
+                shlexed_string.remove(prefix_trigger)
+                most_significant_string = shlexed_string[0]
+                #shlexed_string.pop(0)
+
             else:
                 return None  # If we expect to get called and we don't, do nothing.
 
@@ -131,13 +134,16 @@ class IOBotZulip(object):
             sys.stderr.write('IndexError!' + str(e))
             pass  # user string was one string
 
-
         if most_significant_string in self.bot_actions:
             #If first string is in bot actions, call the method and pass it the rest of the string.
             #Leaving the method with dealing with whether or not it wants to shlex the first char.
             _func = most_significant_string
+
             try:  # we shouldn't get here, but don't crash
-                return getattr(self, _func)(shlexed_string=shlexed_string[1:])
+                if prefix_trigger:
+                    return getattr(self, _func)(shlexed_string=shlexed_string[1:])
+                else:
+                    return getattr(self, _func)(shlexed_string=shlexed_string[0:])
             except AttributeError:
                 return "Command unknown.  Available actions: %s" % (", ".join(self.bot_actions))
         else:
@@ -192,8 +198,6 @@ class IOBotZulip(object):
             if (str(_sender) != self.bot_email) and (_sender is not None):
 
                 m_type = message.get('type', None)
-
-
 
                 if m_type == 'stream' or m_type == 'channel':
                     response = self.parse_handler(message.get('content', ''), prefix_trigger=self.bot_name)
