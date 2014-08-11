@@ -7,11 +7,10 @@ import shlex
 import sys
 from random import choice
 
-class IOBotZulip(IOBot):
+
+class IOBotZulip(object):
 
     def __init__(self, bot_name='iobot', bot_email=None, bot_api_key=None, debug=False):
-
-        super(IOBotZulip, self).__init__(name='IOBot')
 
         self.debug = debug
         self.bot_name = bot_name
@@ -38,7 +37,7 @@ class IOBotZulip(IOBot):
 
         # See if the action exists in the subclass before going to parent scope.
         self.bot_actions = ['help']
-        self.greetings = ['hi', 'hey', 'hello', 'yo', 'sup', 'greetings', 'omg hi']  # 'omg hi' is a miss on shlex
+        self.greetings = ['hi', 'hey', 'hello', 'yo', 'sup', 'greetings', 'omg hi', 'hiya']  # 'omg hi' is a miss on shlex
 
     def user_facing(self, func):
         def register():
