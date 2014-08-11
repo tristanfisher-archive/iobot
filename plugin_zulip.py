@@ -163,7 +163,7 @@ class IOBotZulip(object):
 
     def respond_stream(self, message, response):
         if self.debug:
-            IOBotZulip.debug_msg("Sending message to stream: %s , subject: %s.." %
+            IOBotZulip.debug_msg("Sending message to stream: %s , subject: %s" %
                                  (message.get('display_recipient', 'iobot'), self.set_return_key(obj=message, key='subject')))
         self._client.send_message({
             "type": "stream",
